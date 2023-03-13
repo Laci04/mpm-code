@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# Platformio
+.pio
+CMakeListsPrivate.txt
+
+# Clion
+cmake-build-*/ 
+.idea
