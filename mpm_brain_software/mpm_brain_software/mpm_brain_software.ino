@@ -3,7 +3,7 @@
 
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x3F, 16, 2);
 
-String auswahl[3];
+String auswahl[6];
 int pos;
 int diff;
 int threshold = 250;
@@ -37,9 +37,12 @@ void loop() {
 
   delay(100); 
   
-  auswahl[0] = "ESP32"; // Erstes Wort wird hinzugefügt
-  auswahl[1] = "Emil"; // Zweites Wort wird hinzugefügt
-  auswahl[2] = "Arduino"; // Drittes Wort wird hinzugefügt
+  auswahl[0] = "Scheinleistung"; // Erstes Wort wird hinzugefügt
+  auswahl[1] = "Wirkleistung"; // Zweites Wort wird hinzugefügt
+  auswahl[2] = "Blindleistung"; // Drittes Wort wird hinzugefügt
+  auswahl[3] = "Stromverbrauch";
+  auswahl[4] = "akt. Spannung";
+   auswahl[5] = "Phase U&A";
   
  
 
@@ -53,7 +56,7 @@ void loop() {
       lcd.setCursor(1,1);
       lcd.print("              ");
       Serial.println(i);
-      if(i == 3){ i = 0;}
+      if(i == 6){ i = 0;}
       
       }
      else if(2502 > analogRead(VRxPin) && diff > threshold ){
