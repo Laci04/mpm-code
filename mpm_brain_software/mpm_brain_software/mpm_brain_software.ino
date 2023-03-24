@@ -1,66 +1,103 @@
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_I2C.h> 
 
-#define ENCODER_A_PIN 18
-#define ENCODER_B_PIN 5
-#define BUTTON_PIN 34
-#define LCD_ADDRESS 0x27
-#define LCD_COLUMNS 20
-#define LCD_ROWS 4
+LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x3F, 16, 2);
 
-volatile int encoderPosition = 0;
-volatile bool encoderAPrevState = false;
-volatile bool encoderBPrevState = false;
-volatile bool buttonState = false;
+String auswahl[3];
+int pos;
+int diff;
+int threshold = 250;
 
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
+//Statemachine
+enum State {STATE_IDLE,STATE_COUNTING};
+State currentState = STATE_IDLE;
 
-void ICACHE_RAM_ATTR encoderAISR() {
-  bool state = digitalRead(ENCODER_A_PIN);
-  if (state != encoderAPrevState) {
-    encoderAPrevState = state;
-    if (state && !encoderBPrevState) {
-      encoderPosition++;
-    } else if (!state && encoderBPrevState) {
-      encoderPosition--;
-    }
-  }
-}
+//Joystick Pins
+const int VRxPin = 39;    // Joystick X-Achse Pin
+const int VRyPin = 0;    // Joystick Y-Achse Pin
+const int SWPin = 36; 
 
-void ICACHE_RAM_ATTR encoderBISR() {
-  bool state = digitalRead(ENCODER_B_PIN);
-  if (state != encoderBPrevState) {
-    encoderBPrevState = state;
-    if (state && !encoderAPrevState) {
-      encoderPosition--;
-    } else if (!state && encoderAPrevState) {
-      encoderPosition++;
-    }
-  }
-}
 
-void ICACHE_RAM_ATTR buttonISR() {
-  buttonState = !digitalRead(BUTTON_PIN);
-}
+int sel = 0;
+int i = 0;
 
 void setup() {
   lcd.init();
   lcd.backlight();
-  pinMode(ENCODER_A_PIN, INPUT_PULLUP);
-  pinMode(ENCODER_B_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_A_PIN), encoderAISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_B_PIN), encoderBISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, CHANGE);
+  lcd.noBlink();
+  Serial.begin(9600);
 }
 
 void loop() {
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Encoder Position:");
-  lcd.setCursor(0,1);
-  lcd.print(encoderPosition);
-  lcd.setCursor(10,1);
-  lcd.print(buttonState ? "Active" : "Inactive");
-  delay(1000);
+
+  int VRxVal = analogRead(VRxPin);   // Joystick X-Achse auslesen
+  int VRyVal = analogRead(VRyPin);   // Joystick Y-Achse auslesen
+  int SWVal = digitalRead(SWPin);    // Joystick Schalter auslesen
+
+
+  delay(100); 
+  
+  auswahl[0] = "ESP32"; // Erstes Wort wird hinzugefügt
+  auswahl[1] = "Emil"; // Zweites Wort wird hinzugefügt
+  auswahl[2] = "Arduino"; // Drittes Wort wird hinzugefügt
+  
+ 
+
+
+     while(sel == 0){
+
+      diff = abs(analogRead(VRxPin) - 2502); 
+      
+     if(2502 < analogRead(VRxPin)&& diff > threshold ){
+      i++;
+      lcd.setCursor(1,1);
+      lcd.print("              ");
+      Serial.println(i);
+      if(i == 3){ i = 0;}
+      
+      }
+     else if(2502 > analogRead(VRxPin) && diff > threshold ){
+      i--;
+      lcd.setCursor(1,1);
+      lcd.print("              ");
+      Serial.println(i);
+      if(i == -1){ i = 2;}
+      }
+      
+     VRxVal = analogRead(VRxPin); 
+     lcd.setCursor(4, 0); 
+     lcd.print("Auswahl:");
+        
+     lcd.setCursor(0, 1);
+     lcd.print("<");
+    
+     lcd.setCursor(15, 1);
+     lcd.print(">");
+
+     
+     pos = (16 - auswahl[i].length() ) / 2;
+     lcd.setCursor(pos,1);
+     lcd. print(auswahl[i]);
+
+      Serial.println(analogRead(SWPin));
+
+      if(analogRead(SWPin) == 0){sel = 1; lcd.clear();}
+      
+      }
+
+      
+     delay(100);
+     
+     lcd.setCursor(0,0);
+     lcd. print(auswahl[i]);
+     
+     if(analogRead(SWPin) == 0){sel = 0; lcd.clear();}
+
+      
+
+
+   
+
+//  delay(300);
+ 
 }
