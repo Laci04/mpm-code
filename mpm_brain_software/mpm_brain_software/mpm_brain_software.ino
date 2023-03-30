@@ -1,22 +1,23 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h> 
+#include <ESP32Encoder.h>
+
+
+ESP32Encoder encoder;
 
 LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x3F, 16, 2);
+
+
 
 String auswahl[6];
 int pos;
 int diff;
 int threshold = 250;
 
-//Statemachine
-enum State {STATE_IDLE,STATE_COUNTING};
-State currentState = STATE_IDLE;
 
-//Joystick Pins
-const int VRxPin = 39;    // Joystick X-Achse Pin
-const int VRyPin = 0;    // Joystick Y-Achse Pin
-const int SWPin = 36; 
-
+#define CLK 36 // CLK ENCODER
+#define DT 39 // DT ENCODER
+#define BT 34 // Button
 
 int sel = 0;
 int i = 0;
@@ -25,41 +26,42 @@ void setup() {
   lcd.init();
   lcd.backlight();
   lcd.noBlink();
-  Serial.begin(9600);
+  
+  encoder.attachHalfQuad(DT, CLK);
+  encoder.setCount(0);
+  
+  Serial.begin ( 115200 );
 }
 
 void loop() {
 
-  int VRxVal = analogRead(VRxPin);   // Joystick X-Achse auslesen
-  int VRyVal = analogRead(VRyPin);   // Joystick Y-Achse auslesen
-  int SWVal = digitalRead(SWPin);    // Joystick Schalter auslesen
-
-
+   
+  
   delay(100); 
   
   auswahl[0] = "Scheinleistung"; // Erstes Wort wird hinzugefügt
   auswahl[1] = "Wirkleistung"; // Zweites Wort wird hinzugefügt
   auswahl[2] = "Blindleistung"; // Drittes Wort wird hinzugefügt
-  auswahl[3] = "Stromverbrauch";
-  auswahl[4] = "akt. Spannung";
-   auswahl[5] = "Phase U&A";
+  auswahl[3] = "Stromverbrauch"; //
+  auswahl[4] = "akt. Spannung"; // 
+   auswahl[5] = "Phase U&A"; // 
   
  
-
+    
 
      while(sel == 0){
 
-      diff = abs(analogRead(VRxPin) - 2502); 
+      long oldPos = encoder.getCount();
+      delay(100);
       
-     if(2502 < analogRead(VRxPin)&& diff > threshold ){
+     if(encoder.getCount() < oldPos ){
       i++;
       lcd.setCursor(1,1);
       lcd.print("              ");
       Serial.println(i);
       if(i == 6){ i = 0;}
-      
       }
-     else if(2502 > analogRead(VRxPin) && diff > threshold ){
+     else if(oldPos < encoder.getCount()){
       i--;
       lcd.setCursor(1,1);
       lcd.print("              ");
@@ -67,7 +69,6 @@ void loop() {
       if(i == -1){ i = 2;}
       }
       
-     VRxVal = analogRead(VRxPin); 
      lcd.setCursor(4, 0); 
      lcd.print("Auswahl:");
         
@@ -82,9 +83,7 @@ void loop() {
      lcd.setCursor(pos,1);
      lcd. print(auswahl[i]);
 
-      Serial.println(analogRead(SWPin));
-
-      if(analogRead(SWPin) == 0){sel = 1; lcd.clear();}
+      if(analogRead(BT) == 0){sel = 1; lcd.clear();}
       
       }
 
@@ -93,11 +92,47 @@ void loop() {
      
      lcd.setCursor(0,0);
      lcd. print(auswahl[i]);
-     
-     if(analogRead(SWPin) == 0){sel = 0; lcd.clear();}
+
+     while(sel == 1) {
+
+       if(analogRead(BT) == 0){sel = 0; lcd.clear();}
+
+       switch(i) {
+          case 0:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;
+          case 1:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;
+          case 2:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;         
+          case 3:
+            lcd.setCursor(0, 1);
+            lcd.print("... A");
+            break;
+          case 4:
+            lcd.setCursor(0, 1);
+            lcd.print("... V");
+            break;
+          case 5:
+            lcd.setCursor(0, 1);
+            lcd.print("... °");
+            break;
+            
+          default:
+            // führe Aktionen aus, wenn sensorValue keinen der obigen Werte hat
+            break;
+        }
+       
+      }
+    
 
       
-
+    
 
    
 
