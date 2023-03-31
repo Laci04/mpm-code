@@ -1,66 +1,141 @@
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_I2C.h> 
+#include <ESP32Encoder.h>
 
-#define ENCODER_A_PIN 18
-#define ENCODER_B_PIN 5
-#define BUTTON_PIN 34
-#define LCD_ADDRESS 0x27
-#define LCD_COLUMNS 20
-#define LCD_ROWS 4
 
-volatile int encoderPosition = 0;
-volatile bool encoderAPrevState = false;
-volatile bool encoderBPrevState = false;
-volatile bool buttonState = false;
+ESP32Encoder encoder;
 
-LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
+LiquidCrystal_I2C lcd = LiquidCrystal_I2C(0x3F, 16, 2);
 
-void ICACHE_RAM_ATTR encoderAISR() {
-  bool state = digitalRead(ENCODER_A_PIN);
-  if (state != encoderAPrevState) {
-    encoderAPrevState = state;
-    if (state && !encoderBPrevState) {
-      encoderPosition++;
-    } else if (!state && encoderBPrevState) {
-      encoderPosition--;
-    }
-  }
-}
 
-void ICACHE_RAM_ATTR encoderBISR() {
-  bool state = digitalRead(ENCODER_B_PIN);
-  if (state != encoderBPrevState) {
-    encoderBPrevState = state;
-    if (state && !encoderAPrevState) {
-      encoderPosition--;
-    } else if (!state && encoderAPrevState) {
-      encoderPosition++;
-    }
-  }
-}
 
-void ICACHE_RAM_ATTR buttonISR() {
-  buttonState = !digitalRead(BUTTON_PIN);
-}
+String auswahl[6];
+int pos;
+int diff;
+int threshold = 250;
+
+
+#define CLK 36 // CLK ENCODER
+#define DT 39 // DT ENCODER
+#define BT 34 // Button
+
+int sel = 0;
+int i = 0;
 
 void setup() {
   lcd.init();
   lcd.backlight();
-  pinMode(ENCODER_A_PIN, INPUT_PULLUP);
-  pinMode(ENCODER_B_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_A_PIN), encoderAISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENCODER_B_PIN), encoderBISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonISR, CHANGE);
+  lcd.noBlink();
+  
+  encoder.attachHalfQuad(DT, CLK);
+  encoder.setCount(0);
+  
+  Serial.begin ( 115200 );
 }
 
 void loop() {
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Encoder Position:");
-  lcd.setCursor(0,1);
-  lcd.print(encoderPosition);
-  lcd.setCursor(10,1);
-  lcd.print(buttonState ? "Active" : "Inactive");
-  delay(1000);
+
+   
+  
+  delay(100); 
+  
+  auswahl[0] = "Scheinleistung"; // Erstes Wort wird hinzugefügt
+  auswahl[1] = "Wirkleistung"; // Zweites Wort wird hinzugefügt
+  auswahl[2] = "Blindleistung"; // Drittes Wort wird hinzugefügt
+  auswahl[3] = "Stromverbrauch"; //
+  auswahl[4] = "akt. Spannung"; // 
+   auswahl[5] = "Phase U&A"; // 
+  
+ 
+    
+
+     while(sel == 0){
+
+      long oldPos = encoder.getCount();
+      delay(100);
+      
+     if(encoder.getCount() < oldPos ){
+      i++;
+      lcd.setCursor(1,1);
+      lcd.print("              ");
+      Serial.println(i);
+      if(i == 6){ i = 0;}
+      }
+     else if(oldPos < encoder.getCount()){
+      i--;
+      lcd.setCursor(1,1);
+      lcd.print("              ");
+      Serial.println(i);
+      if(i == -1){ i = 2;}
+      }
+      
+     lcd.setCursor(4, 0); 
+     lcd.print("Auswahl:");
+        
+     lcd.setCursor(0, 1);
+     lcd.print("<");
+    
+     lcd.setCursor(15, 1);
+     lcd.print(">");
+
+     
+     pos = (16 - auswahl[i].length() ) / 2;
+     lcd.setCursor(pos,1);
+     lcd. print(auswahl[i]);
+
+      if(analogRead(BT) == 0){sel = 1; lcd.clear();}
+      
+      }
+
+      
+     delay(100);
+     
+     lcd.setCursor(0,0);
+     lcd. print(auswahl[i]);
+
+     while(sel == 1) {
+
+       if(analogRead(BT) == 0){sel = 0; lcd.clear();}
+
+       switch(i) {
+          case 0:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;
+          case 1:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;
+          case 2:
+            lcd.setCursor(0, 1);
+            lcd.print("... W");
+            break;         
+          case 3:
+            lcd.setCursor(0, 1);
+            lcd.print("... A");
+            break;
+          case 4:
+            lcd.setCursor(0, 1);
+            lcd.print("... V");
+            break;
+          case 5:
+            lcd.setCursor(0, 1);
+            lcd.print("... °");
+            break;
+            
+          default:
+            // führe Aktionen aus, wenn sensorValue keinen der obigen Werte hat
+            break;
+        }
+       
+      }
+    
+
+      
+    
+
+   
+
+//  delay(300);
+ 
 }
