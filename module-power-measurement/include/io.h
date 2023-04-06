@@ -4,6 +4,7 @@
 
 #ifndef WS_PARKING_CODE_IO_H
 #define WS_PARKING_CODE_IO_H
+//#define F_CPU = 20'000'000;
 
 #include <avr/io.h>
 #include <inttypes.h>
@@ -28,7 +29,7 @@ namespace io {
 				explicit pin_t (int dir, int ctrl = PORT_PULLUPEN_bm) :dir_{dir} {
 						if(&port_ == &PORTA && pin_ == 0)
 								*const_cast<uint8_t*>(&pin_) = 1;
-						        if constexpr (Type == type_::DIGITAL) {		//DIGITAL pin Einstellungen
+						if constexpr (Type == type_::DIGITAL) {		//DIGITAL pin Einstellungen
 								*( &( port_.PIN0CTRL ) + pin_ ) = ctrl;
 								port_.DIRCLR |= ( 1 << pin_ );				//Wenn richtungs bit vorhanden, löschen
 								port_.DIRSET |= ( dir << pin_ );			//Setzen
