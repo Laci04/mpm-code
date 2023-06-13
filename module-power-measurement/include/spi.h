@@ -6,7 +6,7 @@
 #define MODULE_POWER_MEASUREMENT_SPI_H
 
 #include <avr/io.h>
-#include <io.h>
+#include "io.h"
 
 namespace io {
     enum class spi_type_t {
@@ -41,36 +41,41 @@ namespace io {
     template <spi_type_t Type, spi_host_mode_t HMode = spi_host_mode_t::BUFFERED>
     class spi_t {
     public:
-        constexpr explicit spi_t(int32_t clock = 4'000'000, spi_bit_order_t bit_order = spi_bit_order_t::MSBFIRST, spi_transfer_mode_t transfer_mode = spi_transfer_mode_t::MODE0) {
-            PORTMUX.SPIROUTEA = 0x0;
-						SPI0.CTRLA = 0;
-						SPI0.CTRLB = 0;
+        explicit spi_t(int32_t clock = 4'000'000, spi_bit_order_t bit_order = spi_bit_order_t::MSBFIRST, spi_transfer_mode_t transfer_mode = spi_transfer_mode_t::MODE0) {
 
-						set_clock_speed(clock);
-						set_bit_order(bit_order);
-						set_transfer_mode(transfer_mode);
+            //set_bit_order(bit_order);
+            //set_transfer_mode(transfer_mode);
+            //set_clock_divider(SPI_PRESC_DIV128_gc);
 
-            if constexpr(Type == io::spi_type_t::MASTER) {
-                //MASTER bit in SPIn.CTRLA
-                SPI0.CTRLA |= SPI_MASTER_bm;        //Set HMode to MASTER
-                SPI0.CTRLB |= SPI_SSD_bm;           //SPI select disable
-
-                if constexpr(HMode == io::spi_host_mode_t::NORMAL) {
-                    //writes & Reads to SPIn.DATA
-                    //Receive data buffer
-                } else {
-                    //Bufen SPIn.CTRLB
-                    SPI0.CTRLB |= SPI_BUFEN_bm;
-                }
-            } else {
-
-            }
-						PORTA.DIRCLR |= ( 1 << PIN1_bm );				//Wenn richtungs bit vorhanden, löschen
-						PORTA.DIRSET |= ( 1 << PIN1_bm );			//Setzen
-						PORTA.DIRCLR |= ( 1 << PIN3_bm );				//Wenn richtungs bit vorhanden, löschen
-						PORTA.DIRSET |= ( 1 << PIN3_bm );			//Setzen
+            begin();
 
             SPI0.CTRLA |= SPI_ENABLE_bm;        //Enable SPI
+        }
+
+        void end() {
+            SPI0.CTRLA &= ~(SPI_ENABLE_bm);
+        }
+
+        void begin() {
+            PORTMUX.SPIROUTEA = 0;
+            // MISO is set to input by the controller
+            PORTA.DIRSET = PIN1_bm;			//Setzen
+            PORTA.DIRSET = PIN3_bm;			//Setzen
+
+            SPI0.CTRLB |= (SPI_SSD_bm);
+            SPI0.CTRLA |= (SPI_ENABLE_bm | SPI_MASTER_bm);
+
+            //SPI settings
+
+            SPI0.CTRLB = (SPI_MODE_0_gc)            |
+              (SPI_SSD_bm)          |
+              (0 << SPI_BUFWR_bp)   |
+              (0 << SPI_BUFEN_bp);
+            SPI0.CTRLA = SPI_PRESC_DIV4_gc        |
+                (1 << SPI_CLK2X_bp)         |
+                (SPI_ENABLE_bm)                         |
+                (SPI_MASTER_bm)                         |
+                (0 << SPI_DORD_bp);
         }
 
         void set_bit_order(spi_bit_order_t order) {
@@ -85,11 +90,11 @@ namespace io {
             SPI0.CTRLB = ((SPI0.CTRLB & (~SPI_MODE_gm)) | mode);
         }
 
-        void set_clock_divider(spi_clock_divider_t divider) {
-            SPI0.CTRLA = ((SPI0.CTRLA &
-                           (~(SPI_PRESC_gm | SPI_CLK2X_bm)))   // mask out values
-                          | divider);                           // write value
-        }
+        //void set_clock_divider(spi_clock_divider_t divider) {
+        //    SPI0.CTRLA = ((SPI0.CTRLA &
+        //                   (~(SPI_PRESC_gm | SPI_CLK2X_bm)))   // mask out values
+        //                  | divider);                           // write value
+        //}
 
         void set_clock_divider(uint8_t divider) {
             SPI0.CTRLA = ((SPI0.CTRLA &
